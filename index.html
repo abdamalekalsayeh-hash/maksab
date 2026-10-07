@@ -70,17 +70,33 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 
 async function refresh(){
   const {data:{user}} = await sb.auth.getUser();
-  currentUser=user||null;
-  document.getElementById('userState').textContent = currentUser ? (currentUser.email||'مسجل') : 'غير مسجل';
-  document.getElementById('authBox').classList.toggle('hidden',!!currentUser);
-  document.getElementById('appBox').classList.toggle('hidden',!currentUser);
-  document.getElementById('addBox').classList.toggle('hidden',!currentUser);
-  document.getElementById('ordersBox').classList.toggle('hidden',!currentUser);
+  currentUser = user || null;
+
+  document.getElementById('userState').textContent =
+    currentUser ? (currentUser.email || 'مسجل') : 'غير مسجل';
+
+  document.getElementById('authBox').classList.toggle('hidden', !!currentUser);
+  document.getElementById('appBox').classList.toggle('hidden', !currentUser);
+  document.getElementById('addBox').classList.toggle('hidden', !currentUser);
+  document.getElementById('ordersBox').classList.toggle('hidden', !currentUser);
+
   if(currentUser){
-    const {data:p}=await sb.from('profiles').select('full_name').eq('id',currentUser.id).maybeSingle();
-    document.getElementById('profileLine').textContent='مرحبًا '+(p?.full_name||currentUser.email);
+    // إخفاء رسالة إنشاء الحساب بعد نجاح تسجيل الدخول
+    document.getElementById('authMsg').classList.add('hidden');
+    document.getElementById('authMsg').textContent = '';
+
+    const {data:p} = await sb
+      .from('profiles')
+      .select('full_name')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+
+    document.getElementById('profileLine').textContent =
+      'مرحبًا ' + (p?.full_name || currentUser.email);
+
     loadOrders();
   }
+
   loadServices();
 }
 function show(id,msg){const e=document.getElementById(id);e.textContent=msg;e.classList.remove('hidden')}
