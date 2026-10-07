@@ -1,83 +1,129 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>مكسب — منصة المهام</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مكسب — البداية الحقيقية</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#182230}
+body{font-family:Arial,Tahoma,sans-serif;background:#f5f7fb;margin:0;color:#172033}
 header{background:#111827;color:#fff;padding:18px 7%;display:flex;justify-content:space-between;align-items:center}
-.logo{font-size:25px;font-weight:800}.tag{opacity:.8;font-size:13px}
-main{max-width:1050px;margin:30px auto;padding:0 18px}.hero{background:#fff;border-radius:20px;padding:28px;box-shadow:0 8px 30px #0000000d}
-h1{margin:0 0 10px}.hero p{color:#667085}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:20px 0}
-.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 5px 20px #0000000a}.balance{font-size:28px;font-weight:800;color:#159447}
-.tasks{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}.task{border:1px solid #e5e7eb;border-radius:14px;padding:18px}.task h3{margin:0 0 8px}.task p{color:#667085}
-button{border:0;border-radius:10px;padding:11px 17px;background:#16a34a;color:white;font-weight:700;cursor:pointer}button:disabled{background:#9ca3af}
-section{margin-top:22px}.withdraw{display:flex;gap:10px;flex-wrap:wrap}.withdraw input{padding:11px;border:1px solid #d1d5db;border-radius:10px;max-width:180px}
-.notice{background:#fff7ed;border:1px solid #fed7aa;padding:13px;border-radius:12px;margin-top:18px;color:#9a3412}
-@media(max-width:700px){.cards,.tasks{grid-template-columns:1fr}}
+main{max-width:1000px;margin:30px auto;padding:0 18px}.card{background:#fff;padding:22px;border-radius:16px;margin-bottom:18px;box-shadow:0 6px 25px #0001}
+input,select,textarea{width:100%;padding:11px;margin:6px 0 12px;border:1px solid #d1d5db;border-radius:10px;font:inherit;box-sizing:border-box}
+button{background:#16a34a;color:white;border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer}
+button.alt{background:#e5e7eb;color:#111827}
+.hidden{display:none}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.service{border:1px solid #e5e7eb;border-radius:14px;padding:16px}.price{font-weight:800;font-size:21px}
+.msg{padding:10px;border-radius:10px;background:#fff7ed;margin-top:10px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><div class="logo">مكسب</div><div class="tag">نسخة تجريبية</div></header>
+<header><strong>مكسب</strong><span id="userState">غير مسجل</span></header>
 <main>
-<div class="hero">
-<h1>اكسب من إنجاز المهام</h1>
-<p>نسخة أولية لمنصة مهام. الرصيد هنا تجريبي إلى أن يتم ربط الموقع بنظام دفع حقيقي.</p>
+<section class="card" id="authBox">
+<h2>إنشاء حساب / تسجيل الدخول</h2>
+<input id="name" placeholder="الاسم (عند التسجيل)">
+<input id="email" type="email" placeholder="البريد الإلكتروني">
+<input id="password" type="password" placeholder="كلمة المرور">
+<div>
+<button onclick="signUp()">إنشاء حساب</button>
+<button class="alt" onclick="signIn()">دخول</button>
 </div>
+<div id="authMsg" class="msg hidden"></div>
+</section>
 
-<div class="cards">
-<div class="card"><div>الرصيد</div><div class="balance" id="balance">0.00 د.ل</div></div>
-<div class="card"><div>المهام المكتملة</div><div class="balance" id="done">0</div></div>
-<div class="card"><div>الحالة</div><div>حساب تجريبي</div></div>
-</div>
-
-<section>
-<h2>المهام المتاحة</h2>
-<div class="tasks" id="tasks"></div>
+<section class="card hidden" id="appBox">
+<h2>حسابك</h2>
+<p id="profileLine"></p>
+<button class="alt" onclick="signOut()">تسجيل الخروج</button>
 </section>
 
 <section class="card">
-<h2>طلب سحب</h2>
-<div class="withdraw">
-<select id="method">
-<option>تحويل مصرفي</option><option>محفظة إلكترونية</option>
+<h2>الخدمات</h2>
+<div id="services" class="grid"><p>جارٍ التحميل...</p></div>
+</section>
+
+<section class="card hidden" id="addBox">
+<h2>أضف خدمة</h2>
+<input id="svcTitle" placeholder="اسم الخدمة">
+<select id="svcCat">
+<option value="">اختر القسم</option><option>تصميم</option><option>مونتاج</option><option>كتابة</option><option>ترجمة</option><option>خدمات أخرى</option>
 </select>
-<input id="amount" type="number" min="1" placeholder="المبلغ بالدينار">
-<button onclick="withdraw()">طلب السحب</button>
-</div>
-<div id="msg" class="notice" style="display:none"></div>
+<input id="svcPrice" type="number" min="1" step="0.1" placeholder="السعر بالدينار الليبي">
+<textarea id="svcDesc" placeholder="وصف الخدمة"></textarea>
+<button onclick="addService()">نشر الخدمة</button>
+<div id="svcMsg" class="msg hidden"></div>
+</section>
+
+<section class="card hidden" id="ordersBox">
+<h2>طلباتي</h2>
+<div id="orders"></div>
 </section>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
 <script>
-let balance=0, done=0;
-const tasks=[
- {id:1,title:"مهمة تجريبية",desc:"اقرأ وصف المهمة ثم أكد إتمامها.",reward:0.50},
- {id:2,title:"استبيان قصير",desc:"أكمل استبيانًا تجريبيًا.",reward:1.00},
- {id:3,title:"اختبار موقع",desc:"جرّب صفحة تجريبية وأرسل ملاحظتك.",reward:1.50},
- {id:4,title:"مهمة محتوى",desc:"اكتب رأيًا قصيرًا حول خدمة.",reward:2.00}
-];
-function render(){
- document.getElementById("balance").textContent=balance.toFixed(2)+" د.ل";
- document.getElementById("done").textContent=done;
- document.getElementById("tasks").innerHTML=tasks.map(t=>`
- <div class="task"><h3>${t.title}</h3><p>${t.desc}</p>
- <strong>${t.reward.toFixed(2)} د.ل</strong><br><br>
- <button onclick="complete(${t.id},this)">إكمال المهمة</button></div>`).join("");
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+let currentUser = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+async function refresh(){
+  const {data:{user}} = await sb.auth.getUser();
+  currentUser=user||null;
+  document.getElementById('userState').textContent = currentUser ? (currentUser.email||'مسجل') : 'غير مسجل';
+  document.getElementById('authBox').classList.toggle('hidden',!!currentUser);
+  document.getElementById('appBox').classList.toggle('hidden',!currentUser);
+  document.getElementById('addBox').classList.toggle('hidden',!currentUser);
+  document.getElementById('ordersBox').classList.toggle('hidden',!currentUser);
+  if(currentUser){
+    const {data:p}=await sb.from('profiles').select('full_name').eq('id',currentUser.id).maybeSingle();
+    document.getElementById('profileLine').textContent='مرحبًا '+(p?.full_name||currentUser.email);
+    loadOrders();
+  }
+  loadServices();
 }
-function complete(id,btn){
- const t=tasks.find(x=>x.id===id); if(btn.disabled)return;
- balance+=t.reward; done++; btn.disabled=true; btn.textContent="تم الإكمال";
- render();
+function show(id,msg){const e=document.getElementById(id);e.textContent=msg;e.classList.remove('hidden')}
+async function signUp(){
+  const email=document.getElementById('email').value.trim(), password=document.getElementById('password').value, name=document.getElementById('name').value.trim();
+  if(!email||!password||!name)return show('authMsg','املأ الاسم والبريد وكلمة المرور.');
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:location.origin+location.pathname}});
+  if(error)return show('authMsg',error.message);
+  show('authMsg','تم إنشاء الحساب. قد تحتاج لتأكيد بريدك الإلكتروني قبل تسجيل الدخول.');
 }
-function withdraw(){
- const amount=Number(document.getElementById("amount").value), msg=document.getElementById("msg");
- msg.style.display="block";
- if(!amount || amount<=0){msg.textContent="أدخل مبلغًا صحيحًا.";return}
- if(amount>balance){msg.textContent="الرصيد غير كافٍ.";return}
- msg.textContent="تم تسجيل طلب السحب تجريبيًا. لا يوجد دفع حقيقي في هذه النسخة.";
+async function signIn(){
+  const email=document.getElementById('email').value.trim(), password=document.getElementById('password').value;
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error)return show('authMsg',error.message); refresh();
 }
-render();
+async function signOut(){await sb.auth.signOut();refresh()}
+async function loadServices(){
+  const box=document.getElementById('services');
+  const {data,error}=await sb.from('services').select('id,title,category,description,price,profiles(full_name)').eq('status','active').order('created_at',{ascending:false});
+  if(error){box.innerHTML='<p>تعذر تحميل الخدمات. تأكد من إعداد قاعدة البيانات.</p>';return}
+  box.innerHTML=data.length?data.map(s=>`<div class="service"><b>${esc(s.category)}</b><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p><small>المقدم: ${esc(s.profiles?.full_name||'مستخدم')}</small><p class="price">${Number(s.price).toFixed(1)} د.ل</p>${currentUser?`<button onclick="orderService('${s.id}')">طلب الخدمة</button>`:'<small>سجل الدخول لطلب الخدمة</small>'}</div>`).join(''):'<p>لا توجد خدمات بعد.</p>';
+}
+async function addService(){
+  if(!currentUser)return;
+  const title=document.getElementById('svcTitle').value.trim(),category=document.getElementById('svcCat').value,price=Number(document.getElementById('svcPrice').value),description=document.getElementById('svcDesc').value.trim();
+  if(!title||!category||!price||!description)return show('svcMsg','أكمل بيانات الخدمة.');
+  const {error}=await sb.from('services').insert({seller_id:currentUser.id,title,category,price,description});
+  if(error)return show('svcMsg',error.message);
+  show('svcMsg','تم نشر الخدمة.'); document.getElementById('svcTitle').value='';document.getElementById('svcDesc').value='';loadServices();
+}
+async function orderService(serviceId){
+  const {error}=await sb.rpc('create_order',{p_service_id:serviceId});
+  if(error)return alert(error.message);
+  alert('تم إنشاء الطلب.');loadOrders();
+}
+async function loadOrders(){
+  const box=document.getElementById('orders');
+  const {data,error}=await sb.from('orders').select('id,price,status,created_at,services(title),seller_id').eq('buyer_id',currentUser.id).order('created_at',{ascending:false});
+  if(error){box.textContent='تعذر تحميل الطلبات.';return}
+  box.innerHTML=data.length?data.map(o=>`<p><b>${esc(o.services?.title)}</b> — ${Number(o.price).toFixed(1)} د.ل — ${esc(o.status)}</p>`).join(''):'لا توجد طلبات بعد.';
+}
+sb.auth.onAuthStateChange(()=>refresh());
+refresh();
 </script>
-</body></html>
+</body>
+</html>
