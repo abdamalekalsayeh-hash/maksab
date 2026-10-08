@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مكسب — لوحة الإدارة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#111827;color:#fff;padding:18px 6%;display:flex;justify-content:space-between;align-items:center}
+main{max-width:1100px;margin:25px auto;padding:0 18px}.card{background:#fff;padding:20px;border-radius:16px;margin-bottom:18px;box-shadow:0 5px 20px #0001}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.stat{font-size:28px;font-weight:800;margin-top:7px}
+input{width:100%;padding:11px;border:1px solid #d0d5dd;border-radius:10px;margin:7px 0 12px;font:inherit}
+button{border:0;border-radius:10px;padding:11px 16px;background:#16a34a;color:white;font-weight:700;cursor:pointer}button.alt{background:#e5e7eb;color:#111827}
+.hidden{display:none}.msg{padding:11px;border-radius:10px;background:#fff7ed;margin-top:10px}.error{background:#fee2e2;color:#991b1b}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #eaecf0;text-align:right}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><strong>مكسب — لوحة الإدارة</strong><button class="alt" onclick="logout()">تسجيل الخروج</button></header>
+<main>
+<section id="loginBox" class="card">
+<h2>دخول المدير</h2>
+<input id="email" type="email" placeholder="البريد الإلكتروني">
+<input id="password" type="password" placeholder="كلمة المرور">
+<button onclick="login()">دخول</button>
+<div id="loginMsg" class="msg hidden"></div>
+</section>
+<section id="panel" class="hidden">
+<div class="grid">
+<div class="card">المستخدمون<div class="stat" id="usersCount">0</div></div>
+<div class="card">الخدمات<div class="stat" id="servicesCount">0</div></div>
+<div class="card">الطلبات<div class="stat" id="ordersCount">0</div></div>
+</div>
+<div class="card"><h2>الخدمات المنشورة</h2><div id="servicesBox">جارٍ التحميل...</div></div>
+<div class="card"><h2>الطلبات</h2><div id="ordersBox">جارٍ التحميل...</div></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
+<script>
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+function show(id,msg,error=false){const e=document.getElementById(id);e.textContent=msg;e.classList.remove('hidden');e.classList.toggle('error',error)}
+async function login(){const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;if(!email||!password)return show('loginMsg','اكتب البريد وكلمة المرور.',true);const {error}=await sb.auth.signInWithPassword({email,password});if(error)return show('loginMsg',error.message,true);await init()}
+async function init(){const {data:{user}}=await sb.auth.getUser();if(!user)return;const {data,error}=await sb.rpc('admin_check');if(error||data!==true){await sb.auth.signOut();return show('loginMsg','هذا الحساب ليس مديرًا.',true)}document.getElementById('loginBox').classList.add('hidden');document.getElementById('panel').classList.remove('hidden');loadPanel()}
+async function loadPanel(){const {data,error}=await sb.rpc('admin_dashboard');if(error){document.getElementById('servicesBox').textContent='خطأ: '+error.message;document.getElementById('ordersBox').textContent='شغّل admin.sql في Supabase ثم أعد المحاولة.';return}document.getElementById('usersCount').textContent=data.users_count??0;document.getElementById('servicesCount').textContent=data.services_count??0;document.getElementById('ordersCount').textContent=data.orders_count??0;const s=data.services||[];document.getElementById('servicesBox').innerHTML=s.length?`<table><tr><th>الخدمة</th><th>القسم</th><th>السعر</th><th>المقدم</th><th>الحالة</th></tr>${s.map(x=>`<tr><td>${esc(x.title)}</td><td>${esc(x.category)}</td><td>${Number(x.price).toFixed(1)} د.ل</td><td>${esc(x.seller_name)}</td><td>${esc(x.status)}</td></tr>`).join('')}</table>`:'لا توجد خدمات.';const o=data.orders||[];document.getElementById('ordersBox').innerHTML=o.length?`<table><tr><th>الخدمة</th><th>المشتري</th><th>المقدم</th><th>السعر</th><th>الحالة</th></tr>${o.map(x=>`<tr><td>${esc(x.service_title)}</td><td>${esc(x.buyer_name)}</td><td>${esc(x.seller_name)}</td><td>${Number(x.price).toFixed(1)} د.ل</td><td>${esc(x.status)}</td></tr>`).join('')}</table>`:'لا توجد طلبات.'}
+async function logout(){await sb.auth.signOut();location.reload()}init();
+</script>
+</body></html>
