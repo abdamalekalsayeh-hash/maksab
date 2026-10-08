@@ -28,6 +28,7 @@ button.alt{background:#e5e7eb;color:#111827}
 <button onclick="signUp()">إنشاء حساب</button>
 <button class="alt" onclick="signIn()">دخول</button>
 </div>
+<button class="alt" onclick="forgotPassword()" style="margin-top:8px">نسيت كلمة المرور؟</button>
 <div id="authMsg" class="msg hidden"></div>
 </section>
 
@@ -63,7 +64,14 @@ button.alt{background:#e5e7eb;color:#111827}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js"></script>
 <script>
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  }
+});
 let currentUser = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -96,6 +104,15 @@ async function signIn(){
   const {error}=await sb.auth.signInWithPassword({email,password});
   if(error)return show('authMsg',error.message); refresh();
 }
+async function forgotPassword(){
+  const email=document.getElementById('email').value.trim();
+  if(!email)return show('authMsg','اكتب بريدك الإلكتروني أولًا ثم اضغط «نسيت كلمة المرور؟».');
+  const redirect=location.origin+location.pathname;
+  localStorage.setItem('maksab_password_reset_started','1');
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirect});
+  if(error)return show('authMsg',error.message);
+  show('authMsg','تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.');
+}
 async function signOut(){await sb.auth.signOut();refresh()}
 async function loadServices(){
   const box=document.getElementById('services');
@@ -122,7 +139,77 @@ async function loadOrders(){
   if(error){box.textContent='تعذر تحميل الطلبات.';return}
   box.innerHTML=data.length?data.map(o=>`<p><b>${esc(o.services?.title)}</b> — ${Number(o.price).toFixed(1)} د.ل — ${esc(o.status)}</p>`).join(''):'لا توجد طلبات بعد.';
 }
-sb.auth.onAuthStateChange(()=>refresh());
+async function showRecoveryForm(){
+  const box=document.getElementById('authBox');
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <h2>إعادة تعيين كلمة المرور</h2>
+    <input id="newPassword" type="password" placeholder="كلمة المرور الجديدة">
+    <input id="confirmPassword" type="password" placeholder="أعد كتابة كلمة المرور">
+    <button onclick="updatePassword()">حفظ كلمة المرور الجديدة</button>
+    <div id="authMsg" class="msg hidden"></div>
+  `;
+}
+
+async function finishAuthRedirect(){
+  const url=new URL(location.href);
+  const code=url.searchParams.get('code');
+  let recovered=false;
+
+  // PKCE reset links return with ?code=...
+  if(code){
+    const {error}=await sb.auth.exchangeCodeForSession(code);
+    if(error){
+      console.error('exchangeCodeForSession:', error);
+      show('authMsg','تعذر فتح رابط استعادة كلمة المرور. اطلب رسالة جديدة ثم افتحها من نفس المتصفح.');
+      return false;
+    }
+    url.searchParams.delete('code');
+    history.replaceState({},document.title,url.toString());
+    recovered=true;
+  }
+
+  // Older/implicit links can return a recovery type in the hash.
+  if(location.hash.includes('type=recovery')) recovered=true;
+
+  const {data:{session}}=await sb.auth.getSession();
+  if((recovered || localStorage.getItem('maksab_password_reset_started')==='1') && session){
+    localStorage.removeItem('maksab_password_reset_started');
+    await showRecoveryForm();
+    return true;
+  }
+  return false;
+}
+
+sb.auth.onAuthStateChange(async (event, session)=>{
+  if(event === 'PASSWORD_RECOVERY' && session){
+    await showRecoveryForm();
+    return;
+  }
+  if(event === 'SIGNED_IN' || event === 'INITIAL_SESSION'){
+    refresh();
+  }
+});
+
+async function updatePassword(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){
+    return show('authMsg','انتهت جلسة إعادة تعيين كلمة المرور. اطلب رابطًا جديدًا وافتحه من نفس المتصفح.');
+  }
+  const p=document.getElementById('newPassword').value;
+  const c=document.getElementById('confirmPassword').value;
+  if(!p || p.length < 6)return show('authMsg','كلمة المرور يجب أن تكون 6 أحرف أو أكثر.');
+  if(p!==c)return show('authMsg','كلمتا المرور غير متطابقتين.');
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error)return show('authMsg',error.message);
+  localStorage.removeItem('maksab_password_reset_started');
+  show('authMsg','تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.');
+}
+
+(async()=>{
+  const recovered=await finishAuthRedirect();
+  if(!recovered) await refresh();
+})();
 refresh();
 </script>
 </body>
